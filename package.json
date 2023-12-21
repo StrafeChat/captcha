@@ -5,7 +5,7 @@
     "express": "^4.18.2",
     "express-session": "^1.17.3"
   },
-  "name": "captcha",
+  "name": "@strafechat/captcha",
   "version": "1.0.0",
   "description": "A very basic captcha provider for Strafe",
   "main": "index.js",
