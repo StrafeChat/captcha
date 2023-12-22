@@ -5,6 +5,9 @@ class CaptchaGenerator {
   width = 500;
   height = 100;
 
+  backgroundImage = false;
+  textColour = "white";
+
   fonts = ["Arial", "Roboto", "Times new Roman", "Courier", "Impact", "Comic Sans MS"]
   constructor(height=100, width=300) {
     this.width = width;
@@ -35,7 +38,7 @@ class CaptchaGenerator {
 
       const drawLetter = (string, currX, currY, ctx) => {
         ctx.font = "30px " + this.#randomFont();
-        ctx.fillStyle = "white";
+        ctx.fillStyle = this.textColour || "white";
 
         const originalY = currY;
         currY += Math.random() * 10;
@@ -48,7 +51,7 @@ class CaptchaGenerator {
 
         if (Math.random() > 0.5) {
           ctx.beginPath();
-          ctx.strokeStyle = "white";
+          ctx.strokeStyle = this.textColour || "white";
           ctx.moveTo(currX - (4 + metrics.width), currY - height / 2);
           ctx.lineTo(currX + 1, currY - height / 2);
           ctx.lineWidth = 2;
@@ -61,15 +64,44 @@ class CaptchaGenerator {
       }
 
       loadImage(path.join(__dirname, "./assets/strafechat.png")).then(image => {
-        const diff = this.width / image.width;
-        ctx.drawImage(image, 0, 0, this.width, this.height * diff);
+
+        if (this.backgroundImage) {
+          ctx.fillStyle = "#242424";
+          ctx.fillRect(0, 0, this.width, this.height);
+
+          const diff = this.height / image.height;
+          ctx.drawImage(image, (this.width - image.width * diff) / 2, 0, image.width * diff, this.height);
+        } else {
+          const data = ctx.createImageData(this.width, this.height);
+          const buffer32 = new Uint32Array(data.data.buffer);
+          const len = buffer32.length;
+
+          for (let i = 0; i < len; i++) {
+            if (Math.random() < 0.5) continue;
+            buffer32[i] = 0xff000000;
+            
+          }
+
+          ctx.fillStyle = "#0000";
+          ctx.fillRect(0, 0, this.width, this.height)
+
+          ctx.putImageData(data, 0, 0);
+        }
 
         ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-        ctx.rect(0, 0, this.width, this.height);
+        ctx.fillRect(0, 0, this.width, this.height);
 
-        const { currX, currY } = drawLetter(string, 10 + (Math.random() * 10), 40 + (Math.random() * 15), ctx);
+        const { currX, currY } = drawLetter(string, 10 + (Math.random() * 30), 40 + (Math.random() * 25), ctx);
 
-        res({ image: canvas.toDataURL(), string: string });
+        const finalCanvas = createCanvas(this.width, this.height);
+        const fctx = finalCanvas.getContext("2d");
+
+        fctx.fillStyle = "white";
+        fctx.fillRect(0, 0, this.width, this.height);
+
+        fctx.drawImage(canvas, 0, 0, this.width, this.height);
+
+        res({ image: finalCanvas.toDataURL(), string: string });
       });
     });
   }
