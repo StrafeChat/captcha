@@ -1,4 +1,4 @@
-export type MiddlewareFunction = Function;
+export type Request = any;
 /**
  * @class CaptchaGenerator
  *
@@ -43,12 +43,9 @@ export class CaptchaGenerator {
     #private;
 }
 /**
- * @typedef {function} MiddlewareFunction
- * @description Express middleware function that adds the verifyCaptcha() and generateCaptcha() functions to the request object
- * @param {Express.Request} req Express request object
- * @param {Express.Response} res Express response object
- * @param {Express.NextFunction} next Express next function
- * @return {void}
+ * @typedef {import("express").Request} Request
+ * @property {function(string): boolean} verifyCaptcha Verifies a captcha string
+ * @property {function(): Promise<string>} generateCaptcha Generates a captcha image and returns the base64 data url
 */
 /**
  * @function middleware
@@ -56,7 +53,7 @@ export class CaptchaGenerator {
  *
  * @param {CaptchaGenerator} generator The captcha generator object that should be used
  *
- * @return {MiddlewareFunction} Express middleware
+ * @return {function} Express middleware
  */
-export function middleware(generator: CaptchaGenerator): MiddlewareFunction;
+export function middleware(generator: CaptchaGenerator): Function;
 //# sourceMappingURL=index.d.ts.map
