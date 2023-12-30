@@ -1,5 +1,7 @@
 const { createCanvas, loadImage } = require('canvas');
 const path = require("path");
+const TimeoutMap = require('./TimeoutMap');
+const crypto = require("crypto");
 
 /**
  * @class CaptchaGenerator
@@ -19,19 +21,19 @@ class CaptchaGenerator {
     this.height = height;
   }
 
-  #randomString(length=5) {
+  #randomString(length = 5) {
     let result = '';
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const charactersLength = characters.length;
     let counter = 0;
     while (counter < length) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+      result += characters.charAt(crypto.randomInt(0, charactersLength - 1));
       counter += 1;
     }
     return result;
   }
   #randomFont() {
-    return this.fonts[Math.floor(Math.random() * this.fonts.length)];
+    return this.fonts[crypto.randomInt(0, this.fonts.length - 1)];
   }
 
   /**
@@ -59,7 +61,7 @@ class CaptchaGenerator {
         currY += Math.random() * 10;
 
         ctx.fillText(string[0], currX, currY);
-
+        
         const metrics = ctx.measureText(string[0]);
         currX += 3 + metrics.width;
         const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;;
@@ -127,13 +129,16 @@ class CaptchaGenerator {
  * @param {CaptchaGenerator} generator The captcha generator object that should be used
  */
 const middleware = (generator) => {
-  const mw = (req, _res, next) => {
+  const mw = (req, res, next) => {
     req.verifyCaptcha = (string) => {
-      return req.session.captchaString === string;
+      const sessionID = req.headers["session-id"];
+      const valid = (sessions.get(sessionID)?.value == string);
+      if (valid) sessions.delete(sessionID);
+      return valid;
     }
     req.generateCaptcha = async () => {
       const captcha = await generator.generate();
-      req.session.captchaString = captcha.string;
+      req.sessions.set(req.sessionID, captcha.string);
       return captcha.image;
     }
     next();

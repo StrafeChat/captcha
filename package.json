@@ -3,7 +3,7 @@
     "canvas": "^2.11.2"
   },
   "name": "@strafechat/captcha",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A very basic captcha provider for Strafe",
   "main": "index.js",
   "scripts": {
