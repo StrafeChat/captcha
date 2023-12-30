@@ -1,6 +1,11 @@
 const { createCanvas, loadImage } = require('canvas');
 const path = require("path");
 
+/**
+ * @class CaptchaGenerator
+ *
+ * Captcha generator class
+ */
 class CaptchaGenerator {
   width = 500;
   height = 100;
@@ -29,6 +34,16 @@ class CaptchaGenerator {
     return this.fonts[Math.floor(Math.random() * this.fonts.length)];
   }
 
+  /**
+   * @typedef {Object} CaptchaData
+   * @property {string} image a base64 data url representing the captcha image
+   * @property {string} string the string hidden in the captcha image
+   */
+  /**
+   * generate
+   *
+   * @return {CaptchaData}  description
+   */
   generate() {
     return new Promise(res => {
       const string = this.#randomString(6);
@@ -44,7 +59,7 @@ class CaptchaGenerator {
         currY += Math.random() * 10;
 
         ctx.fillText(string[0], currX, currY);
-        
+
         const metrics = ctx.measureText(string[0]);
         currX += 3 + metrics.width;
         const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;;
@@ -79,7 +94,7 @@ class CaptchaGenerator {
           for (let i = 0; i < len; i++) {
             if (Math.random() < 0.5) continue;
             buffer32[i] = 0xff000000;
-            
+
           }
 
           ctx.fillStyle = "#0000";
@@ -107,8 +122,12 @@ class CaptchaGenerator {
   }
 }
 
+/**
+ * @function
+ * @param {CaptchaGenerator} generator The captcha generator object that should be used
+ */
 const middleware = (generator) => {
-  const mw = (req, res, next) => {
+  const mw = (req, _res, next) => {
     req.verifyCaptcha = (string) => {
       return req.session.captchaString === string;
     }
