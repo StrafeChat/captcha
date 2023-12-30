@@ -13,7 +13,8 @@ const port = 3000
 
 var session = require('express-session');
 app.use(session({
-  secret: "strafechat",
+  secret: "captcha",
+  saveUninitialized: true
 }));
 app.use(middleware(generator));
 var bodyParser = require('body-parser')

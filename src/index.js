@@ -1,24 +1,34 @@
 const { createCanvas, loadImage } = require('canvas');
 const path = require("path");
-const TimeoutMap = require('./TimeoutMap');
 const crypto = require("crypto");
 
 /**
  * @class CaptchaGenerator
  *
  * Captcha generator class
+ * @property {number} width=300 The width of the captcha image
+ * @property {number} height=100 The height of the captcha image
+ * 
+ * @property {boolean} backgroundImage=false Whether or not to use the supplied background image
+ * @property {string} textColour="white" The colour of the captcha text
+ * @property {string} fontSize="30px" The font size of the captcha text
+ * @property {string[]} fonts=["Arial", "Roboto", "Times new Roman", "Courier", "Impact", "Comic Sans MS"] The fonts to use for the characters of the captcha text
  */
 class CaptchaGenerator {
-  width = 500;
+  width = 300;
   height = 100;
 
   backgroundImage = false;
   textColour = "white";
 
-  fonts = ["Arial", "Roboto", "Times new Roman", "Courier", "Impact", "Comic Sans MS"]
-  constructor(height=100, width=300) {
+  fonts = ["Arial", "Roboto", "Times new Roman", "Courier", "Impact", "Comic Sans MS"];
+  fontSize = "30px";
+  constructor(height=100, width=300, fontSize="30px", fonts=[]) {
     this.width = width;
     this.height = height;
+
+    this.fontSize = fontSize;
+    if (fonts.length > 0) this.fonts = fonts;
   }
 
   #randomString(length = 5) {
@@ -36,25 +46,32 @@ class CaptchaGenerator {
     return this.fonts[crypto.randomInt(0, this.fonts.length - 1)];
   }
 
+  #loadImage(url) {
+    return new Promise((res, rej) => {
+      loadImage(url).then(image => res(image)).catch(err => rej(err));
+    });
+  }
+
   /**
    * @typedef {Object} CaptchaData
    * @property {string} image a base64 data url representing the captcha image
    * @property {string} string the string hidden in the captcha image
    */
   /**
-   * generate
+   * @function generate
+   * @description generates a captcha image
    *
-   * @return {CaptchaData}  description
+   * @return {CaptchaData}  An object containing the image as a base64 data url and the string hidden inside
    */
   generate() {
-    return new Promise(res => {
+    return new Promise(async res => {
       const string = this.#randomString(6);
 
       const canvas = createCanvas(this.width, this.height);
       const ctx = canvas.getContext("2d");
 
       const drawLetter = (string, currX, currY, ctx) => {
-        ctx.font = "30px " + this.#randomFont();
+        ctx.font = this.fontSize + " " + this.#randomFont();
         ctx.fillStyle = this.textColour || "white";
 
         const originalY = currY;
@@ -80,65 +97,73 @@ class CaptchaGenerator {
         return { currX, currY };
       }
 
-      loadImage(path.join(__dirname, "./assets/strafechat.png")).then(image => {
-
-        if (this.backgroundImage) {
-          ctx.fillStyle = "#242424";
-          ctx.fillRect(0, 0, this.width, this.height);
-
-          const diff = this.height / image.height;
-          ctx.drawImage(image, (this.width - image.width * diff) / 2, 0, image.width * diff, this.height);
-        } else {
-          const data = ctx.createImageData(this.width, this.height);
-          const buffer32 = new Uint32Array(data.data.buffer);
-          const len = buffer32.length;
-
-          for (let i = 0; i < len; i++) {
-            if (Math.random() < 0.5) continue;
-            buffer32[i] = 0xff000000;
-
-          }
-
-          ctx.fillStyle = "#0000";
-          ctx.fillRect(0, 0, this.width, this.height)
-
-          ctx.putImageData(data, 0, 0);
-        }
-
-        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+      if (this.backgroundImage) {
+        const image = await this.#loadImage(path.join(__dirname, "./assets/strafechat.png"));
+        ctx.fillStyle = "#242424";
         ctx.fillRect(0, 0, this.width, this.height);
 
-        const { currX, currY } = drawLetter(string, 10 + (Math.random() * 30), 40 + (Math.random() * 25), ctx);
+        const diff = this.height / image.height;
+        ctx.drawImage(image, (this.width - image.width * diff) / 2, 0, image.width * diff, this.height);
+      } else {
+        const data = ctx.createImageData(this.width, this.height);
+        const buffer32 = new Uint32Array(data.data.buffer);
+        const len = buffer32.length;
 
-        const finalCanvas = createCanvas(this.width, this.height);
-        const fctx = finalCanvas.getContext("2d");
+        for (let i = 0; i < len; i++) {
+          if (Math.random() < 0.5) continue;
+          buffer32[i] = 0xff000000;
 
-        fctx.fillStyle = "white";
-        fctx.fillRect(0, 0, this.width, this.height);
+        }
 
-        fctx.drawImage(canvas, 0, 0, this.width, this.height);
+        ctx.fillStyle = "#0000";
+        ctx.fillRect(0, 0, this.width, this.height)
 
-        res({ image: finalCanvas.toDataURL(), string: string });
-      });
+        ctx.putImageData(data, 0, 0);
+      }
+
+      ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+      ctx.fillRect(0, 0, this.width, this.height);
+
+      const { currX, currY } = drawLetter(string, 10 + (Math.random() * 30), 40 + (Math.random() * 25), ctx);
+
+      const finalCanvas = createCanvas(this.width, this.height);
+      const fctx = finalCanvas.getContext("2d");
+
+      fctx.fillStyle = "white";
+      fctx.fillRect(0, 0, this.width, this.height);
+
+      fctx.drawImage(canvas, 0, 0, this.width, this.height);
+
+      res({ image: finalCanvas.toDataURL(), string: string });
     });
   }
 }
 
 /**
- * @function
+ * @typedef {function} MiddlewareFunction
+ * @description Express middleware function that adds the verifyCaptcha() and generateCaptcha() functions to the request object
+ * @param {Express.Request} req Express request object
+ * @param {Express.Response} res Express response object
+ * @param {Express.NextFunction} next Express next function
+ * @return {void}
+*/
+/**
+ * @function middleware
+ * @description Express middleware initiator to add the verifyCaptcha() and generateCaptcha() functions to the request object
+ * 
  * @param {CaptchaGenerator} generator The captcha generator object that should be used
+ * 
+ * @return {MiddlewareFunction} Express middleware
  */
 const middleware = (generator) => {
-  const mw = (req, res, next) => {
-    req.verifyCaptcha = (string) => {
-      const sessionID = req.headers["session-id"];
-      const valid = (sessions.get(sessionID)?.value == string);
-      if (valid) sessions.delete(sessionID);
+  const mw = (req, _res, next) => {
+    req.verifyCaptcha = function(string) {
+      const valid = (this.session.captchaString == string);
       return valid;
     }
-    req.generateCaptcha = async () => {
+    req.generateCaptcha = async function() {
       const captcha = await generator.generate();
-      req.sessions.set(req.sessionID, captcha.string);
+      req.session.captchaString = captcha.string;
       return captcha.image;
     }
     next();
