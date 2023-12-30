@@ -35,8 +35,8 @@ class CaptchaGenerator {
       const ctx = canvas.getContext("2d");
 
       const drawLetter = (string, currX, currY, ctx) => {
-        ctx.font = "50px" + this.#randomFont();
-        ctx.fillStyle = "#c6c6c6";
+        ctx.font = "35px" + this.#randomFont();
+        ctx.fillStyle = "#bababa";
 
         const originalY = currY;
         currY += (crypto.randomBytes(4).readUInt32LE() / 0xffffffff) * 5;
